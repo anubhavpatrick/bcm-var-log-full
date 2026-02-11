@@ -48,10 +48,21 @@ fi
 # shellcheck source=bcm-recovery.conf
 source "$CONFIG_FILE"
 
+# =============================================================================
+# Acquire exclusive lock — only one instance may run at a time
+# =============================================================================
+
+exec 9>"${LOCK_FILE}"
+if ! flock -n 9; then
+    echo "ERROR: Another instance of ${SCRIPT_NAME} is already running (lock: ${LOCK_FILE})" >&2
+    exit 1
+fi
+
 # Timestamp for this run — used for the backup subdirectory
 RUN_TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
 RUN_DATE="$(date '+%Y-%m-%d')"
 BACKUP_DIR="${BACKUP_BASE_DIR}/${RUN_TIMESTAMP}"
+SYSLOG_BACKUP_RUN_DIR="${SYSLOG_BACKUP_DIR}/${RUN_TIMESTAMP}"
 
 # Day-wise log file
 LOG_FILE="${LOG_DIR}/${RUN_DATE}/bcm-recovery.log"
@@ -160,33 +171,35 @@ preflight_check_services() {
 }
 
 preflight_check_backup_destination() {
+    # Always create the config backup directory — Phase 3 uses it
+    mkdir -p "${BACKUP_DIR}"
+
     if [[ "${SKIP_BACKUP}" == true ]]; then
-        log "INFO" "Skipping backup destination check (--skip-backup)"
-        # Still create the backup directory — Phase 3 uses it for config backups
-        mkdir -p "${BACKUP_DIR}"
+        log "INFO" "Skipping syslog backup destination check (--skip-backup)"
         return 0
     fi
 
-    log "INFO" "Checking backup destination..."
+    log "INFO" "Checking syslog backup destination..."
 
-    # Determine the mount point for the parent of BACKUP_BASE_DIR
+    # Determine the mount point for the parent of SYSLOG_BACKUP_DIR
     local parent_dir
-    parent_dir="$(dirname "${BACKUP_BASE_DIR}")"
+    parent_dir="$(dirname "${SYSLOG_BACKUP_DIR}")"
     if [[ ! -d "${parent_dir}" ]]; then
-        fail_and_exit "Parent directory of BACKUP_BASE_DIR does not exist: ${parent_dir}"
+        fail_and_exit "Parent directory of SYSLOG_BACKUP_DIR does not exist: ${parent_dir}"
     fi
 
     local avail_gb
     avail_gb=$(get_free_space_gb "${parent_dir}")
-    log "INFO" "Available space on backup partition: ${avail_gb} GB"
+    log "INFO" "Available space on syslog backup partition: ${avail_gb} GB"
 
     if [[ ${avail_gb} -lt ${REQUIRED_FREE_SPACE_GB} ]]; then
         fail_and_exit "Insufficient space for syslog backup. Need ${REQUIRED_FREE_SPACE_GB} GB, have ${avail_gb} GB."
     fi
 
-    # Create timestamped backup directory
-    mkdir -p "${BACKUP_DIR}"
-    log "SUCCESS" "Backup directory created: ${BACKUP_DIR}"
+    # Create timestamped syslog backup directory
+    mkdir -p "${SYSLOG_BACKUP_RUN_DIR}"
+    log "SUCCESS" "Config backup directory: ${BACKUP_DIR}"
+    log "SUCCESS" "Syslog backup directory: ${SYSLOG_BACKUP_RUN_DIR}"
 }
 
 preflight_run_all() {
@@ -214,7 +227,7 @@ phase1_backup_syslog() {
     fi
 
     local src="${SYSLOG_FILE}"
-    local dst="${BACKUP_DIR}/syslog.incident-backup"
+    local dst="${SYSLOG_BACKUP_RUN_DIR}/syslog.incident-backup"
 
     if [[ ! -f "${src}" ]]; then
         fail_and_exit "Syslog file not found: ${src}"
@@ -592,7 +605,8 @@ main() {
     log "INFO" "Recovery started at $(date)"
     log "INFO" "Configuration: ${CONFIG_FILE}"
     log "INFO" "Log file: ${LOG_FILE}"
-    log "INFO" "Backup directory: ${BACKUP_DIR}"
+    log "INFO" "Config backup directory: ${BACKUP_DIR}"
+    log "INFO" "Syslog backup directory: ${SYSLOG_BACKUP_RUN_DIR}"
     echo
 
     preflight_run_all
@@ -608,7 +622,8 @@ main() {
     log "SUCCESS" "  RECOVERY COMPLETED SUCCESSFULLY"
     log "SUCCESS" "========================================"
     log "INFO" "Total time: ${duration} seconds"
-    log "INFO" "Backups: ${BACKUP_DIR}"
+    log "INFO" "Config backups: ${BACKUP_DIR}"
+    log "INFO" "Syslog backup: ${SYSLOG_BACKUP_RUN_DIR}"
     log "INFO" "Log: ${LOG_FILE}"
 }
 

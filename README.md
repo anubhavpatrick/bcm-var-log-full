@@ -41,22 +41,25 @@ scripts/
 At runtime the scripts create these directories under the project root:
 
 ```
-backups/    Syslog backup + original config file copies (created by recovery script)
-logs/       Daily log files -- logs/YYYY-MM-DD/ (created by both scripts)
-debug/      Daily monitoring reports -- debug/YYYY-MM-DD/ (created by monitoring script)
+backups/        Config file backups -- pre-recovery and post-recovery (created by recovery script)
+syslog-backup/  Large syslog incident backup (~173GB) -- kept separate from config backups
+logs/           Daily log files -- logs/YYYY-MM-DD/ (created by both scripts)
+debug/          Daily monitoring reports -- debug/YYYY-MM-DD/ (created by monitoring script)
 ```
 
 > **Note on the syslog backup:** The recovery script copies the ~173 GB syslog file to
-> `backups/` before truncating it. This backup takes up a lot of space. Once you have
-> reviewed the monitoring reports in `debug/` and confirmed the root cause (the rsyslog
-> error loop) and that the system is stable, you can safely delete it:
+> `syslog-backup/` (not `backups/`) before truncating it. This is intentionally kept in a
+> separate directory so that sharing `backups/`, `logs/`, or `debug/` with support does not
+> accidentally include 173 GB of old syslog data.
+>
+> Once you have reviewed the monitoring reports in `debug/` and confirmed the root cause
+> (the rsyslog error loop) and that the system is stable, you can safely delete it:
 >
 > ```bash
-> rm /root/bcm-var-log-full/backups/*/syslog.incident-backup
+> rm -rf /root/bcm-var-log-full/syslog-backup/
 > ```
 >
-> Keep the rest of the `backups/` folder -- it contains the original config files you may
-> need for rollback.
+> The `backups/` folder only contains small config files needed for rollback.
 
 ---
 
@@ -325,7 +328,7 @@ sudo /root/bcm-var-log-full/scripts/bcm-recovery.sh /root/bcm-var-log-full/scrip
 sudo scripts/bcm-recovery.sh
 ```
 
-**"Insufficient space for syslog backup"** -- The `/` partition needs 180 GB free. Check with `df -h /`. Free up space or change `BACKUP_BASE_DIR` in the config.
+**"Insufficient space for syslog backup"** -- The `/` partition needs 180 GB free. Check with `df -h /`. Free up space or change `SYSLOG_BACKUP_DIR` in the config.
 
 **CMDaemon won't start after recovery:**
 

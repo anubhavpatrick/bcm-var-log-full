@@ -32,6 +32,16 @@ fi
 source "$CONFIG_FILE"
 
 # =============================================================================
+# Acquire exclusive lock — only one instance may run at a time
+# =============================================================================
+
+exec 9>"${LOCK_FILE}"
+if ! flock -n 9; then
+    echo "ERROR: Another instance of ${SCRIPT_NAME} is already running (lock: ${LOCK_FILE})" >&2
+    exit 1
+fi
+
+# =============================================================================
 # Setup
 # =============================================================================
 

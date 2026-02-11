@@ -1,5 +1,6 @@
 # Runtime directories (created by scripts on the head node)
 backups/
+syslog-backup/
 logs/
 debug/
 
