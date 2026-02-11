@@ -1,0 +1,13 @@
+# Runtime directories (created by scripts on the head node)
+backups/
+logs/
+debug/
+
+# Internal documentation (incident report, proposed solution)
+docs/
+
+# Archives created for support
+*.tar.gz
+
+# Claude Code local config (machine-specific)
+CLAUDE.local.md
