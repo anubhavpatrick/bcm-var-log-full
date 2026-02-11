@@ -462,7 +462,7 @@ phase3_write_logrotate() {
     fi
 
     log "SUCCESS" "New logrotate config written to ${LOGROTATE_RSYSLOG_CONF}"
-    log "INFO" "Key changes: weekly->daily, added maxsize 1G (syslog) / 500M (others)"
+    log "INFO" "Key changes: weekly->daily, added maxsize 5G (syslog) / 500M (others)"
 }
 
 phase3_validate_logrotate() {

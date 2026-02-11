@@ -1,4 +1,4 @@
-# BCM Head Node Recovery Toolkit
+# BCM Head Node var/ Storage Recovery Toolkit
 
 Recovery and monitoring scripts for a BCM head node after the `/var` disk exhaustion incident (INC-2025-0210).
 
@@ -36,9 +36,6 @@ scripts/
   bcm-recovery.conf      Settings for the recovery script
   bcm-log-monitor.sh     Ongoing monitoring script (cron)
   bcm-log-monitor.conf   Settings for the monitoring script
-docs/
-  incident-report.md     What went wrong and why
-  proposed-solution.md   Original remediation plan
 ```
 
 At runtime the scripts create these directories under the project root:
