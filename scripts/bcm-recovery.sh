@@ -468,10 +468,15 @@ phase3_write_logrotate() {
 phase3_validate_logrotate() {
     log "INFO" "Validating logrotate configuration (dry-run)..."
 
-    if logrotate -d "${LOGROTATE_RSYSLOG_CONF}" >> "${LOG_FILE}" 2>&1; then
-        log "SUCCESS" "Logrotate dry-run passed"
-    else
+    local dryrun_output
+    dryrun_output=$(logrotate -dv "${LOGROTATE_RSYSLOG_CONF}" 2>&1) || true
+    echo "${dryrun_output}" >> "${LOG_FILE}"
+
+    # Check for actual config errors rather than relying on exit code,
+    # as some logrotate versions return non-zero from -d mode even on success.
+    if echo "${dryrun_output}" | grep -qi "^error:"; then
         log "ERROR" "Logrotate dry-run FAILED — restoring original config"
+        log "ERROR" "Errors: $(echo "${dryrun_output}" | grep -i "^error:")"
 
         local backup="${BACKUP_DIR}/$(basename "${LOGROTATE_RSYSLOG_CONF}")${CONFIG_BACKUP_SUFFIX}"
         if [[ -f "${backup}" ]]; then
@@ -481,6 +486,8 @@ phase3_validate_logrotate() {
 
         fail_and_exit "Logrotate validation failed. Original config has been restored."
     fi
+
+    log "SUCCESS" "Logrotate dry-run passed"
 }
 
 phase3_backup_rsyslog_conf() {
