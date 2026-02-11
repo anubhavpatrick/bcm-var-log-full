@@ -390,7 +390,7 @@ phase2_restart_cmd_service() {
         attempt=$(( attempt + 1 ))
         log "INFO" "Attempt ${attempt}/${MAX_SERVICE_RESTART_RETRIES}..."
 
-        if systemctl restart "${CMD_SERVICE}" 2>&1 | tee -a "${LOG_FILE}"; then
+        if timeout "${SERVICE_RESTART_TIMEOUT}" systemctl restart "${CMD_SERVICE}" 2>&1 | tee -a "${LOG_FILE}"; then
             sleep "${SERVICE_RESTART_DELAY}"
 
             if systemctl is-active --quiet "${CMD_SERVICE}"; then
@@ -404,7 +404,7 @@ phase2_restart_cmd_service() {
         sleep "${SERVICE_RESTART_DELAY}"
     done
 
-    fail_and_exit "CMDaemon failed to start after ${MAX_SERVICE_RESTART_RETRIES} attempts. Check: journalctl -u ${CMD_SERVICE} -n 50"
+    fail_and_exit "CMDaemon failed to start after ${MAX_SERVICE_RESTART_RETRIES} attempts (timeout: ${SERVICE_RESTART_TIMEOUT}s each). Check: journalctl -u ${CMD_SERVICE} -n 50"
 }
 
 phase2_verify_cmsh() {
