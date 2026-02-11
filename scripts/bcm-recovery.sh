@@ -310,14 +310,18 @@ phase1_truncate_syslog() {
         fail_and_exit "Failed to truncate ${SYSLOG_FILE}"
     fi
 
-    # Verify
+    # Verify — rsyslog keeps writing via its open fd, so the file won't stay
+    # at 0 bytes.  Accept anything under TRUNCATE_MAX_BYTES.
+    sleep 1
     local new_size
     new_size=$(stat -c%s "${SYSLOG_FILE}")
-    if [[ "${new_size}" -ne 0 ]]; then
-        fail_and_exit "Truncation verification failed: size is ${new_size} bytes (expected 0)"
+    if [[ "${new_size}" -ge "${TRUNCATE_MAX_BYTES}" ]]; then
+        fail_and_exit "Truncation verification failed: size is ${new_size} bytes (max allowed: ${TRUNCATE_MAX_BYTES})"
     fi
 
-    log "SUCCESS" "Syslog truncated to 0 bytes"
+    local new_size_human
+    new_size_human=$(numfmt --to=iec-i "${new_size}")
+    log "SUCCESS" "Syslog truncated (current size: ${new_size_human} — within ${TRUNCATE_MAX_BYTES}-byte tolerance)"
 }
 
 phase1_verify_space() {
