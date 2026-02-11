@@ -331,7 +331,7 @@ sudo scripts/bcm-recovery.sh
 
 ```bash
 # Check the CMDaemon log
-tail -100 /var/log/cmdaemon/cmdaemon.log
+tail -100 /var/log/cmdaemon
 
 # Check if MySQL is running (CMDaemon depends on it)
 sudo systemctl status mysql
