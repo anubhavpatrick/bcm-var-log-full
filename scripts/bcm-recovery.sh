@@ -548,6 +548,19 @@ phase3_restart_rsyslog() {
     log "SUCCESS" "rsyslog restarted with new configuration"
 }
 
+phase3_save_post_recovery() {
+    log "INFO" "Saving post-recovery config snapshots..."
+
+    for src in "${LOGROTATE_RSYSLOG_CONF}" "${RSYSLOG_CONF}"; do
+        local dst="${BACKUP_DIR}/$(basename "${src}")${CONFIG_POST_SUFFIX}"
+        if cp -- "${src}" "${dst}"; then
+            log "SUCCESS" "Saved: ${dst}"
+        else
+            log "WARN" "Failed to save post-recovery snapshot of ${src}"
+        fi
+    done
+}
+
 phase3_run() {
     log "INFO" "========================================"
     log "INFO" "  PHASE 3: PREVENTIVE CONFIGURATION"
@@ -558,6 +571,7 @@ phase3_run() {
     phase3_backup_rsyslog_conf
     phase3_add_rate_limiting
     phase3_restart_rsyslog
+    phase3_save_post_recovery
     log "SUCCESS" "Phase 3 completed"
     echo
 }
